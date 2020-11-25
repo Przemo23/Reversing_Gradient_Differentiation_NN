@@ -15,8 +15,8 @@ y_train = np.reshape(y_train, (1250,32))
 y_test = np.reshape(y_test, (250,32))
 x_train = x_train.astype('float64')
 x_test = x_test.astype('float64')
-x_train = x_train[:20]
-x_test = x_test[:20]
+x_train = x_train[:100]
+x_test = x_test[:100]
 
 x_train = x_train / 255
 x_test = x_test / 255
@@ -36,7 +36,7 @@ model.compile(optimizer=classic_momentum_optimizer,
               metrics=['accuracy'])
 
 
-NUM_EPOCHS = 2
+NUM_EPOCHS = 3
 BATCH_SIZE = 32
 
 train_CM(model,x_train,y_train,classic_momentum_optimizer,epochs=NUM_EPOCHS)

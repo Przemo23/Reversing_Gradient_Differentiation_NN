@@ -8,6 +8,14 @@ import numpy as np
 class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
 
     def __init__(self, learning_rate=0.1, decay=0.9, name="ClassicMomentumOptimizer"):
+        """
+        :param learning_rate: Learning rate controls the impact of the velocity on weights. Has to be >0.
+        :param decay: Decay controls the growth of the velocity. It has to be inside (0;1)
+        :param name: Name of the params
+
+        :var self.var_preciserep: A dictionary containing the precise representations of weights for each layer
+        :var self.v_preciserep: A dictionary containing the precise representations of velocities for each layer
+        """
         super().__init__(name)
         self._decay = decay
         self._lr = learning_rate
@@ -23,15 +31,13 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
     def _resource_apply_dense(self, grad, var):
         x = self.var_preciserep[var.ref()]
         v = self.v_preciserep[var.ref()]
-        g = PreciseRep(grad.numpy())
         lr = self._lr
         decay = self._decay
 
         # get current velocity
         # update position
-        g.mul(1-decay)
         v.mul(decay)
-        v.sub(g.val)
+        v.sub(grad.numpy()*(1-decay))
         x.add(v.val*lr)
 
         self.var_preciserep[var.ref()] = x

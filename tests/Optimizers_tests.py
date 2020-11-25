@@ -32,11 +32,11 @@ class ClassicMomentumOptimizerTest(tf.test.TestCase):
         x = tf.Variable(initial_value=tf.random.uniform([1], minval=1, maxval=2, seed=5), name='x')
         y = lambda: x * x
         init_x = x.numpy()
-        for i in range(1500):
+        for i in range(300):
             self.CM_optimizer.minimize(y, var_list=[x])
         prepare_for_reverse([x], velocity=self.CM_optimizer.v_preciserep, learning_rate=0.2)
         RGD_optimizer = RGDOptimizer(velocity=self.CM_optimizer.v_preciserep, learning_rate=0.2)
-        for i in range(1500):
+        for i in range(300):
             RGD_optimizer.minimize(y, var_list=[x])
         RGD_optimizer._reverse_last_step(var_list=[x])
         self.assertEqual(init_x, x.numpy())

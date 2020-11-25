@@ -22,7 +22,7 @@ import tensorflow as tf
 import numpy as np
 
 
-class HessianEstimators():
+class HessianEstimators:
     def __init__(self, cost_fun, model_fun,
                  batch_size_G):
         self.cost_fun = cost_fun

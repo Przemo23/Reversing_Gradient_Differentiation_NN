@@ -22,7 +22,7 @@
 
 import tensorflow as tf
 import numpy as np
-from pyhessian.pyhessian import HessianEstimator
+from pyhessian.pyhessian import HessianEstimators
 
 # Model architecture; number of neurons, layer-wise.
 # e.g. feed-forward neural network
@@ -68,7 +68,7 @@ batch_size_G = 100
 batch_size_H = 1000
 
 # Initialize HessianEstimator object
-hest = HessianEstimator(cost_fun, cost, model_fun, params, 
+hest = HessianEstimators.HessianEstimator(cost_fun, cost, model_fun, params,
                         X, y, batch_size_G)
 
 # First Hessian column op
@@ -141,7 +141,7 @@ G = sess.run(G_op, feed_dict={X:X_train[:batch_size_G],
 # Evaluate single example Hessian OPG approximation matrix 
 # (must re-init HessianEstimator with batch_size=1)
 batch_size_G = 1 
-hest = HessianEstimator(cost_fun, cost, model_fun, params, 
+hest = HessianEstimators.HessianEstimator(cost_fun, cost, model_fun, params,
                         X, y, batch_size_G)
 G_op = hest.get_G_op()
 G = sess.run(G_op, feed_dict={X:[X_train[0]], 
