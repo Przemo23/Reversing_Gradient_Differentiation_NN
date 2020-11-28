@@ -3,10 +3,8 @@
 
 import tensorflow as tf
 import numpy as np
-from sklearn.utils import shuffle
 from optimizers.RGDOptimizer import RGDOptimizer
 from optimizers.RGDOptimizer import prepare_for_reverse
-from keras.utils.np_utils import to_categorical
 from pyhessian.pyhessian import HessianEstimators
 
 
@@ -21,17 +19,7 @@ def loss(model, x, y, training):
     y_ = model(x, training=training)
     return loss_object(y_true=y, y_pred=y_)
 
-def create_Test_Dataset():
-    x = tf.random.normal([512, 2], 2, 1.0, tf.float32, seed=1).numpy()
-    x = np.concatenate((x, tf.random.normal([512, 2], -2, 1.0, tf.float32, seed=1).numpy()), axis=0)
-    y = np.concatenate((np.ones(512),np.zeros(512)),axis=0)
-    x,y = shuffle(x,y,random_state=0)
-    #Create batches
-    x = np.reshape(x,(32,32,2))
-    y = np.reshape(y,(32,32)).astype('int64')
-    y = to_categorical(y,num_classes=2)
 
-    return x,y
 
 def train_CM(model,x_train,y_train,optimizer,epochs = 10):
     train_loss_results = []

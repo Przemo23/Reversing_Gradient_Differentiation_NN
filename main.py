@@ -2,6 +2,7 @@ from keras.layers import Dense
 from keras.models import Sequential
 from utils.training import *
 from optimizers.ClassicMomentumOptimizer import ClassicMomentumOptimizer
+from keras.utils.np_utils import to_categorical
 
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()

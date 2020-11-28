@@ -1,5 +1,6 @@
 from utils.training import *
 from optimizers.ClassicMomentumOptimizer import ClassicMomentumOptimizer
+from test_helpers import *
 
 
 class ClassicMomentumOptimizerTest(tf.test.TestCase):
@@ -42,13 +43,8 @@ class ClassicMomentumOptimizerTest(tf.test.TestCase):
         self.assertEqual(init_x, x.numpy())
 
     # def test_reversible_NN(self):
-    #     x,y = create_Test_Dataset()
-    #     #Create simple NN model
-    #     model = Sequential()
-    #     # 1 neuron. Basically fit a line.
-    #
-    #     model.add(Dense(4,activation='relu',input_dim=2))
-    #     model.add(Dense(2,activation='softmax',input_dim=2))
+    #     x,y = create_Test_Binary_Dataset()
+    #     model = create_Simple_Binary_Classifier()
     #     model.compile(loss='binary_crossentropy',
     #                   optimizer=self.CM_optimizer,
     #                   metrics=['accuracy'])
