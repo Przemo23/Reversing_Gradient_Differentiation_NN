@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.ops import state_ops
 from utils.preciseRep import PreciseRep
-from pyhessian.pyhessian import HessianEstimators
+from pyhessian.hessian import HessianEstimators
 
 
 def prepare_for_reverse(weights, velocity, learning_rate):

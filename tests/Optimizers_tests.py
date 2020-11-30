@@ -1,6 +1,6 @@
 from utils.training import *
 from optimizers.ClassicMomentumOptimizer import ClassicMomentumOptimizer
-from test_helpers import *
+from tests.test_helpers  import *
 
 
 class ClassicMomentumOptimizerTest(tf.test.TestCase):
@@ -43,7 +43,7 @@ class ClassicMomentumOptimizerTest(tf.test.TestCase):
         self.assertEqual(init_x, x.numpy())
 
     # def test_reversible_NN(self):
-    #     x,y = create_Test_Binary_Dataset()
+    #     x,y = create_Binary_Dataset()
     #     model = create_Simple_Binary_Classifier()
     #     model.compile(loss='binary_crossentropy',
     #                   optimizer=self.CM_optimizer,

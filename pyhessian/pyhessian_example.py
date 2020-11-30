@@ -22,7 +22,7 @@
 
 import tensorflow as tf
 import numpy as np
-from pyhessian.pyhessian import HessianEstimators
+from pyhessian.hessian import *
 
 # Model architecture; number of neurons, layer-wise.
 # e.g. feed-forward neural network
@@ -39,10 +39,10 @@ b4 = tf.Variable(tf.random.normal((T4, )), 'float32')
 
 # Stack weights and biases layer-wise
 params = [W1, b2, W2, b3, W3, b4]
-
+tf.compat.v1.placeholder
 # Input-output variables
-X = tf.placeholder(dtype='float32', shape=(None, T1))
-y = tf.placeholder(dtype='float32', shape=(None, T4))
+X = tf.compat.v1.placeholder(dtype='float32', shape=(None, T1))
+y = tf.compat.v1.placeholder(dtype='float32', shape=(None, T4))
 
 # Model function
 def model_fun(X, params):
