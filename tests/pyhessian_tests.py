@@ -5,11 +5,15 @@ from pyhessian.hessian import HessianEstimators
 
 
 class PyhessianTest(tf.test.TestCase):
+    """
+    Needs development
+    """
 
     def setUp(self):
         super(PyhessianTest, self).setUp()
 
     def test_init(self):
+        ### To be changed
         x, y = create_Binary_Dataset()
         model = create_Simple_Binary_Classifier()
         batch_size = 32
@@ -28,8 +32,11 @@ class PyhessianTest(tf.test.TestCase):
         hessian = est.get_H_op()
         return hessian
 
-    def test_mul_hessian(self):
-        return None
+    # def test_get_Hv_op(self):
+
+
+
+
 
 
 if __name__ == '__main__':

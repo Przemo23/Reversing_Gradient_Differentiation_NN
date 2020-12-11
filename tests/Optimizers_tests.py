@@ -3,9 +3,9 @@ from optimizers.ClassicMomentumOptimizer import ClassicMomentumOptimizer
 from tests.test_helpers  import *
 
 
-class ClassicMomentumOptimizerTest(tf.test.TestCase):
+class OptimizersTests(tf.test.TestCase):
     def setUp(self):
-        super(ClassicMomentumOptimizerTest, self).setUp()
+        super(OptimizersTests, self).setUp()
         self.CM_optimizer = ClassicMomentumOptimizer(learning_rate=0.2)
 
     def test_quadraticBowl(self, MAX_EPOCHS=500):
@@ -42,18 +42,18 @@ class ClassicMomentumOptimizerTest(tf.test.TestCase):
         RGD_optimizer._reverse_last_step(var_list=[x])
         self.assertEqual(init_x, x.numpy())
 
-    # def test_reversible_NN(self):
-    #     x,y = create_Binary_Dataset()
-    #     model = create_Simple_Binary_Classifier()
-    #     model.compile(loss='binary_crossentropy',
-    #                   optimizer=self.CM_optimizer,
-    #                   metrics=['accuracy'])
-    #     init_weights = model.get_weights()
-    #
-    #     train_CM(model,x,y,self.CM_optimizer,epochs=10)
-    #     reverse_training(model,x,y,self.CM_optimizer.v_preciserep,epochs=10)
-    #
-    #     self.assertEqual(np.array(init_weights),np.array(model.get_weights()))
+    def test_reversible_NN(self):
+        x,y = create_Binary_Dataset()
+        model = create_Simple_Binary_Classifier()
+        model.compile(loss='binary_crossentropy',
+                      optimizer=self.CM_optimizer,
+                      metrics=['accuracy'])
+        init_weights = model.get_weights()
+
+        train_CM(model,x,y,self.CM_optimizer,epochs=10)
+        reverse_training(model,x,y,self.CM_optimizer.v_preciserep,epochs=10)
+
+        self.assertEqual(np.array(init_weights),np.array(model.get_weights()))
 
 
 if __name__ == '__main__':

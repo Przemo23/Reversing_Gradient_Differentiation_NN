@@ -22,7 +22,7 @@ import tensorflow as tf
 import numpy as np
 
 
-class HessianEstimators:
+class HessianEstimators():
     def __init__(self, cost_fun, model_fun,
                  batch_size_G):
         self.cost_fun = cost_fun
@@ -122,10 +122,9 @@ class HessianEstimators:
             with tf.GradientTape() as tape2:
                 with tf.GradientTape() as tape:
                     cost = self.cost_fun(self.y,self.model_fun(self.x,training=True))
-
-
                     cost_gradient = self.flatten(tape.gradient(target=cost, sources=self.params))
-                    vprod = tf.math.multiply(cost_gradient, tf.stop_gradient(v))
+                    v = tf.transpose(tf.stop_gradient(v))
+                    vprod = tf.tensordot(cost_gradient, v, axes = 0)
             Hv_op = self.flatten(tape2.gradient(target = vprod,sources= self.params))
             return Hv_op
 
