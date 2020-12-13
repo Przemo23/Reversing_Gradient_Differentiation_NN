@@ -1,6 +1,7 @@
 from utils.preciseRep import PreciseRep
 from tensorflow import keras
 from tensorflow.python.ops import state_ops
+from utils.preciseRep import list_operation
 
 import numpy as np
 
@@ -25,8 +26,8 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
     def _prepare(self, var_list):
         if var_list[0].ref() not in self.var_preciserep.keys():
             for var in var_list:
-                self.var_preciserep[var.ref()] = PreciseRep(var.numpy())
-                self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape))
+                self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+                self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
 
     def _resource_apply_dense(self, grad, var):
         x = self.var_preciserep[var.ref()]
@@ -36,12 +37,15 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
 
         # get current velocity
         # update position
-        v.mul(decay)
-        v.sub(grad.numpy()*(1-decay))
-        x.add(v.val*lr)
+        # gradP = PreciseRep(np.array([1 - decay]))
+        # gradP.mul_scalar_matrix(grad.numpy())
+
+        v.mul([decay])
+        v.sub((grad.numpy()*(1-decay)).ravel().tolist())
+        x.add(list_operation(v.val,'*',[lr]))
 
         self.var_preciserep[var.ref()] = x
-        state_ops.assign(var,x.val)
+        state_ops.assign(var,np.array(x.val).reshape(var.shape))
         self.v_preciserep[var.ref()] = v
 
     #   return control_flow_ops.group(*[var_update, v_t])

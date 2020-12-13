@@ -21,8 +21,8 @@ def create_Binary_Dataset():
 def create_Simple_Binary_Classifier():
     model = Sequential()
 
-    model.add(Dense(4,activation='relu',input_dim=2))
-    model.add(Dense(2,activation='softmax',input_dim=2))
+    model.add(Dense(2,activation='relu',input_dim=2))
+    # model.add(Dense(1,activation='softmax',input_dim=2))
     return model
 
 

@@ -3,6 +3,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.python.ops import state_ops
 from utils.preciseRep import PreciseRep
+from utils.preciseRep import list_operation
 from pyhessian.hessian import HessianEstimators
 
 
@@ -12,7 +13,7 @@ def prepare_for_reverse(weights, velocity, learning_rate):
     # concerning the weights from one state before the one
     # we are in.
     for w in weights:
-        state_ops.assign(w, w - learning_rate * velocity[w.ref()].val)
+        state_ops.assign(w, w - learning_rate * np.array(velocity[w.ref()].val).reshape(w.shape))
 
 
 class RGDOptimizer(keras.optimizers.Optimizer):
@@ -45,7 +46,7 @@ class RGDOptimizer(keras.optimizers.Optimizer):
     def assign_to_slots(self, var_list):
         # Initialize the slots and create the precise representations of weights
         for var in var_list:
-            self.var_preciserep[var.ref()] = PreciseRep(var.numpy())
+            self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
             self.d_decay[var.ref()] = 0.0
             self.d_lr[var.ref()] = 0.0
             self.get_slot(var, "d_v").assign(np.zeros(var.shape))
@@ -65,8 +66,8 @@ class RGDOptimizer(keras.optimizers.Optimizer):
             self.add_slot(var, "d_v")
             # self.add_slot(var, "d_teta")
             self.add_slot(var, "d_x")
-
-            self.hes.estimators[var.ref()] = HessianEstimators.HessianEstimator(self.hes, [var])
+            if self.hes is not None:
+                self.hes.estimators[var.ref()] = HessianEstimators.HessianEstimator(self.hes, [var])
         if var_list[0].ref() not in self.var_preciserep.keys():
             self.assign_to_slots(var_list)
             self.create_init_dict(var_list)
@@ -75,7 +76,7 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         lr = self.learning_rate
         decay = self.decay
 
-        # Used for inintialization
+        # Used for initialization
         if self.init_dict[var.ref()]:
             self.init_dict[var.ref()] = False
             self.get_slot(var, "d_x").assign(grad)
@@ -87,18 +88,22 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         dx = self.get_slot(var, 'd_x')
 
         # It needs to be double transposed, so it remains in its initial shape
-        dx_identity = tf.reshape(tf.identity(dx),[-1])
+        dx_identity = tf.reshape(tf.identity(dx), [-1])
         dx_numpy = tf.transpose(dx_identity).numpy()
-        v_numpy = v.val.ravel()
+        v_numpy = np.array(v.val)
         self.d_lr[var.ref()] = np.dot(dx_numpy, v_numpy)
 
         # Revert the CM optimizers steps
-        v.add(grad.numpy() * (1 - decay))
-        v.div(decay)
-        x.sub(v.val * lr)
+
+        # # Test
+        # gradP = PreciseRep(np.array([1 - decay]))
+        # gradP.mul_scalar_matrix(grad.numpy())
+        v.add((grad.numpy() * (1 - decay)).ravel().tolist())
+        v.div([decay])
+        x.sub(list_operation(v.val, '*', [lr]))
 
         # Assign the new values of weights and velocities
-        state_ops.assign(var, x.val)
+        state_ops.assign(var, np.array(x.val).reshape(var.shape))
         self.var_preciserep[var.ref()] = x
         self.v_preciserep[var.ref()] = v
 
@@ -106,9 +111,10 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         state_ops.assign_add(dv, lr * dx)
         dv_identity = tf.reshape(tf.identity(dv), [-1])
         dv_numpy = tf.transpose(dv_identity).numpy()
-        self.d_decay = np.dot(dv_numpy, (grad.numpy()+v.val).ravel())
-        new_dx = (1 - decay) * self.hes.estimators[var.ref()].get_Hv_op(tf.transpose(dv_identity))
-        state_ops.assign_sub(dx, tf.reshape(new_dx, var.shape))
+        self.d_decay = np.dot(dv_numpy, (grad.numpy().ravel() + np.array(v.val)))
+        if self.hes is not None:
+            new_dx = (1 - decay) * self.hes.estimators[var.ref()].get_Hv_op(tf.transpose(dv_identity))
+            state_ops.assign_sub(dx, tf.reshape(new_dx, var.shape))
         state_ops.assign(dv, dv * decay)
 
     def _reverse_last_step(self, var_list):
@@ -117,8 +123,9 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         # This function reverts the last update, so the weights are updated only N times in the end.
 
         for var in var_list:
-            self.var_preciserep[var.ref()].add(self.v_preciserep[var.ref()].val * self.learning_rate)
-            state_ops.assign(var, self.var_preciserep[var.ref()].val)
+            self.var_preciserep[var.ref()].add(
+                list_operation(self.v_preciserep[var.ref()].val, '*', [self.learning_rate]))
+            state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
 
     def _resource_apply_sparse(self, grad, var):
         raise NotImplementedError("Sparse gradient updates are not supported.")
