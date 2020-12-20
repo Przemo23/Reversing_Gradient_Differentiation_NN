@@ -37,7 +37,7 @@ model.compile(optimizer=classic_momentum_optimizer,
               metrics=['accuracy'])
 
 
-NUM_EPOCHS = 1
+NUM_EPOCHS = 5
 BATCH_SIZE = 32
 
 train_CM(model,x_train,y_train,classic_momentum_optimizer,epochs=NUM_EPOCHS)

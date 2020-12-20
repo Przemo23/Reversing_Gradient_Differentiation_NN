@@ -4,10 +4,9 @@
 import tensorflow as tf
 import numpy as np
 from optimizers.RGDOptimizer import RGDOptimizer
-from optimizers.RGDOptimizer import prepare_for_reverse
 from pyhessian.hessian import HessianEstimators
 
-loss_object = tf.keras.losses.CategoricalCrossentropy(from_logits=True)
+loss_object = tf.keras.losses.MeanSquaredError()
 
 
 def grad(model, inputs, targets):
@@ -49,11 +48,13 @@ def train_CM(model, x_train, y_train, optimizer, epochs=10):
                                                                     epoch_loss_avg.result(),
                                                                     epoch_accuracy.result()))
 
+    return optimizer.v_history, optimizer.var_history
 
-def reverse_training(model, x_train, y_train, velocity, epochs=10):
-    prepare_for_reverse(model.trainable_variables, velocity, 0.1)
+
+def reverse_training(model, x_train, y_train, velocity, vars, epochs=10):
     hes = HessianEstimators(loss_object, model, 32)
-    rgd_optimizer = RGDOptimizer(velocity, hes)
+    rgd_optimizer = RGDOptimizer(velocity, vars, hes)
+    rgd_optimizer.prepare_for_reverse(model.trainable_variables)
 
     # Create arrays to monitor progress
     train_loss_results = []
@@ -89,3 +90,4 @@ def reverse_training(model, x_train, y_train, velocity, epochs=10):
                                                                     epoch_accuracy.result()))
 
     rgd_optimizer._reverse_last_step(var_list=model.trainable_variables)
+    return rgd_optimizer.v_history, rgd_optimizer.var_history

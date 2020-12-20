@@ -6,19 +6,9 @@ from utils.preciseRep import PreciseRep
 from utils.preciseRep import list_operation
 from pyhessian.hessian import HessianEstimators
 
-
-def prepare_for_reverse(weights, velocity, learning_rate):
-    # This function manually undoes the last weights update.
-    # It is necessary, since we need to calculate the gradient
-    # concerning the weights from one state before the one
-    # we are in.
-    for w in weights:
-        state_ops.assign(w, w - learning_rate * np.array(velocity[w.ref()].val).reshape(w.shape))
-
-
 class RGDOptimizer(keras.optimizers.Optimizer):
 
-    def __init__(self, velocity, hes, learning_rate=0.1, decay=0.9, name="RGDOptimizer"):
+    def __init__(self, velocity, weights, hes, learning_rate=0.1, decay=0.9, name="RGDOptimizer"):
         """
         :param velocity: The velocity matrix of the Classic Momentum Optimizer after it finished optimizing the model
         :param hes: HessianEstimators objects containing necessary params to calculate hessians
@@ -27,9 +17,9 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         :param name: The name of the optimizer
         """
         super().__init__(name)
-        self._init_hyperparams(learning_rate, decay, velocity, hes)
+        self._init_hyperparams(learning_rate, decay, velocity, hes, weights)
 
-    def _init_hyperparams(self, learning_rate, decay, velocity, hes):
+    def _init_hyperparams(self, learning_rate, decay, velocity, hes, weights):
         """
         :var self.var_preciserep: A dictionary containing the precise representations of weights for each layer
         :var self.v_preciserep: A dictionary containing the precise representations of velocities for each layer
@@ -37,16 +27,21 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         self.learning_rate = learning_rate
         self.decay = decay
         self.init_dict = {}
-        self.var_preciserep = {}
+        self.var_preciserep = weights
+        self.var_history = {}
+        self.v_history = {}
         self.v_preciserep = velocity
         self.hes = hes
         self.d_lr = {}
         self.d_decay = {}
+        self.first_iter = True
 
     def assign_to_slots(self, var_list):
         # Initialize the slots and create the precise representations of weights
         for var in var_list:
-            self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+            # self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+            self.var_history[var.ref()] = []
+            self.v_history[var.ref()] = []
             self.d_decay[var.ref()] = 0.0
             self.d_lr[var.ref()] = 0.0
             self.get_slot(var, "d_v").assign(np.zeros(var.shape))
@@ -68,7 +63,8 @@ class RGDOptimizer(keras.optimizers.Optimizer):
             self.add_slot(var, "d_x")
             if self.hes is not None:
                 self.hes.estimators[var.ref()] = HessianEstimators.HessianEstimator(self.hes, [var])
-        if var_list[0].ref() not in self.var_preciserep.keys():
+        if self.first_iter is True:
+            self.first_iter = False
             self.assign_to_slots(var_list)
             self.create_init_dict(var_list)
 
@@ -78,12 +74,16 @@ class RGDOptimizer(keras.optimizers.Optimizer):
 
         # Used for initialization
         if self.init_dict[var.ref()]:
+
             self.init_dict[var.ref()] = False
             self.get_slot(var, "d_x").assign(grad)
+            state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
 
         # Assign variables from slots and class variables
         x = self.var_preciserep[var.ref()]
         v = self.v_preciserep[var.ref()]
+        self.var_history[var.ref()].append(x.val)
+
         dv = self.get_slot(var, 'd_v')
         dx = self.get_slot(var, 'd_x')
 
@@ -96,8 +96,6 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         # Revert the CM optimizers steps
 
         # # Test
-        # gradP = PreciseRep(np.array([1 - decay]))
-        # gradP.mul_scalar_matrix(grad.numpy())
         v.add((grad.numpy() * (1 - decay)).ravel().tolist())
         v.div([decay])
         x.sub(list_operation(v.val, '*', [lr]))
@@ -106,6 +104,7 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         state_ops.assign(var, np.array(x.val).reshape(var.shape))
         self.var_preciserep[var.ref()] = x
         self.v_preciserep[var.ref()] = v
+        self.v_history[var.ref()].append(v.val)
 
         # Calculate the gradient of the learning trajectory
         state_ops.assign_add(dv, lr * dx)
@@ -116,6 +115,18 @@ class RGDOptimizer(keras.optimizers.Optimizer):
             new_dx = (1 - decay) * self.hes.estimators[var.ref()].get_Hv_op(tf.transpose(dv_identity))
             state_ops.assign_sub(dx, tf.reshape(new_dx, var.shape))
         state_ops.assign(dv, dv * decay)
+
+    def prepare_for_reverse(self, var_list):
+        # This function manually undoes the last weights update.
+        # It is necessary, since we need to calculate the gradient
+        # concerning the weights from one state before the one
+        # we are in.
+        for var in var_list:
+            self.var_preciserep[var.ref()].sub(
+                list_operation(self.v_preciserep[var.ref()].val, '*', [self.learning_rate]))
+            state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
+
+
 
     def _reverse_last_step(self, var_list):
         # As we called prepare_for_reverse() before starting the optimization and then we called
