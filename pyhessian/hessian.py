@@ -1,5 +1,5 @@
 """
-    pyhessian.py - Hessian Matrix Estimator
+    hessian.py - Hessian Matrix Estimator
  
     Copyright (c) 2018-2019 by Geir K. Nilsen (geir.kjetil.nilsen@gmail.com)
     and the University of Bergen.
@@ -22,7 +22,7 @@ import tensorflow as tf
 import numpy as np
 
 
-class HessianEstimators:
+class HessianEstimators():
     def __init__(self, cost_fun, model_fun,
                  batch_size_G):
         self.cost_fun = cost_fun
@@ -104,8 +104,8 @@ class HessianEstimators:
             Returns:
                 A flattened 1D tensor
             """
-            return tf.concat([tf.reshape(_params, [-1]) \
-                              for _params in params], axis=0)
+            flattened_params = [tf.reshape(_params, [-1]) for _params in params]
+            return tf.concat(flattened_params,0)
 
         def get_Hv_op(self, v):
             """
@@ -118,12 +118,14 @@ class HessianEstimators:
             Returns:
                 Hv_op: Hessian vector product op (tensor)
             """
-            cost_gradient = self.flatten(tf.gradients(self.cost,
-                                                      self.params))
-            vprod = tf.math.multiply(cost_gradient,
-                                     tf.stop_gradient(v))
-            Hv_op = self.flatten(tf.gradients(vprod,
-                                              self.params))
+
+            with tf.GradientTape() as tape2:
+                with tf.GradientTape() as tape:
+                    cost = self.cost_fun(self.y,self.model_fun(self.x,training=True))
+                    cost_gradient = self.flatten(tape.gradient(target=cost, sources=self.params))
+                    v = tf.transpose(tf.stop_gradient(v))
+                    vprod = tf.tensordot(cost_gradient, v, axes = 0)
+            Hv_op = self.flatten(tape2.gradient(target = vprod,sources= self.params))
             return Hv_op
 
         def get_H_op(self):
@@ -137,9 +139,7 @@ class HessianEstimators:
             Returns:
                 H_op: Hessian matrix op (tensor)
             """
-            H_op = tf.map_fn(self.get_Hv_op, tf.eye(self.P,
-                                                    self.P),
-                             dtype='float32')
+            H_op = tf.map_fn(self.get_Hv_op, tf.eye(self.P, self.P), dtype='float32')
             return H_op
 
         def get_G_op(self):

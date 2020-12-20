@@ -2,6 +2,7 @@ from keras.layers import Dense
 from keras.models import Sequential
 from utils.training import *
 from optimizers.ClassicMomentumOptimizer import ClassicMomentumOptimizer
+from keras.utils.np_utils import to_categorical
 
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
@@ -36,7 +37,7 @@ model.compile(optimizer=classic_momentum_optimizer,
               metrics=['accuracy'])
 
 
-NUM_EPOCHS = 3
+NUM_EPOCHS = 5
 BATCH_SIZE = 32
 
 train_CM(model,x_train,y_train,classic_momentum_optimizer,epochs=NUM_EPOCHS)

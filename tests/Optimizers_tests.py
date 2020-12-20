@@ -1,11 +1,13 @@
 from utils.training import *
 from optimizers.ClassicMomentumOptimizer import ClassicMomentumOptimizer
+from tests.test_helpers import *
+import pandas as pd
 
 
-class ClassicMomentumOptimizerTest(tf.test.TestCase):
+class OptimizersTests(tf.test.TestCase):
     def setUp(self):
-        super(ClassicMomentumOptimizerTest, self).setUp()
-        self.CM_optimizer = ClassicMomentumOptimizer(learning_rate=0.2)
+        super(OptimizersTests, self).setUp()
+        # self.CM_optimizer = ClassicMomentumOptimizer(learning_rate=0.1)
 
     def test_quadraticBowl(self, MAX_EPOCHS=500):
         # tf.compat.v1.disable_eager_execution()
@@ -13,8 +15,9 @@ class ClassicMomentumOptimizerTest(tf.test.TestCase):
         x = tf.Variable(initial_value=tf.random.uniform([1], minval=1000, maxval=2000, seed=0), name='x')
         y = lambda: x * x
 
+        CM_optimizer =  ClassicMomentumOptimizer(learning_rate=0.1)
         for epoch in range(MAX_EPOCHS):
-            self.CM_optimizer.minimize(y, var_list=[x])
+            CM_optimizer.minimize(y, var_list=[x])
         self.assertLess(abs(x), epsilon)
 
     # def test_reverse_one_step(self):
@@ -28,36 +31,48 @@ class ClassicMomentumOptimizerTest(tf.test.TestCase):
     #     RGD_optimizer._reverse_last_step(var_list=[x])
     #     self.assertEqual(init_x, x.numpy())
 
-    def test_reverse_multiple_steps(self):
-        x = tf.Variable(initial_value=tf.random.uniform([1], minval=1, maxval=2, seed=5), name='x')
-        y = lambda: x * x
-        init_x = x.numpy()
-        for i in range(300):
-            self.CM_optimizer.minimize(y, var_list=[x])
-        prepare_for_reverse([x], velocity=self.CM_optimizer.v_preciserep, learning_rate=0.2)
-        RGD_optimizer = RGDOptimizer(velocity=self.CM_optimizer.v_preciserep, learning_rate=0.2)
-        for i in range(300):
-            RGD_optimizer.minimize(y, var_list=[x])
-        RGD_optimizer._reverse_last_step(var_list=[x])
-        self.assertEqual(init_x, x.numpy())
+    # def test_reverse_multiple_steps(self):
+    #     x = tf.Variable(initial_value=tf.random.uniform([1], minval=1, maxval=2, seed=5), name='x')
+    #     y = lambda: x * x
+    #     init_x = x.numpy()
+    #     CM_optimizer = ClassicMomentumOptimizer(learning_rate=0.1)
+    #
+    #     for i in range(300):
+    #         self.CM_optimizer.minimize(y, var_list=[x])
+    #     # prepare_for_reverse([x], velocity=self.CM_optimizer.v_preciserep, learning_rate=0.2)
+    #     RGD_optimizer = RGDOptimizer(velocity=CM_optimizer.v_preciserep, weights=CM_optimizer.var_preciserep, learning_rate=0.1,hes=None)
+    #     RGD_optimizer.prepare_for_reverse([x])
+    #     for i in range(300):
+    #         RGD_optimizer.minimize(y, var_list=[x])
+    #     RGD_optimizer._reverse_last_step(var_list=[x])
+    #     self.assertEqual(init_x, x.numpy())
+    #
+    def test_reversible_NN(self):
+        CM_optimizer = ClassicMomentumOptimizer(learning_rate=0.1)
+        x, y = create_Binary_Dataset()
+        model = create_Simple_Binary_Classifier()
+        model.compile(loss='binary_crossentropy',
+                      optimizer=CM_optimizer,
+                      metrics=['accuracy'])
+        init_weights = model.get_weights()
 
-    # def test_reversible_NN(self):
-    #     x,y = create_Test_Dataset()
-    #     #Create simple NN model
-    #     model = Sequential()
-    #     # 1 neuron. Basically fit a line.
-    #
-    #     model.add(Dense(4,activation='relu',input_dim=2))
-    #     model.add(Dense(2,activation='softmax',input_dim=2))
-    #     model.compile(loss='binary_crossentropy',
-    #                   optimizer=self.CM_optimizer,
-    #                   metrics=['accuracy'])
-    #     init_weights = model.get_weights()
-    #
-    #     train_CM(model,x,y,self.CM_optimizer,epochs=10)
-    #     reverse_training(model,x,y,self.CM_optimizer.v_preciserep,epochs=10)
-    #
-    #     self.assertEqual(np.array(init_weights),np.array(model.get_weights()))
+        cm_vhistory, cm_varhistory = train_CM(model, x, y, CM_optimizer, epochs=5)
+        rgd_vhistory,rgd_varhistory =  reverse_training(model, x, y, CM_optimizer.v_preciserep, vars=CM_optimizer.var_preciserep, epochs=5)
+        reversed_weights = model.get_weights()
+
+
+        # self.assertEqual(init_weights, reversed_weights)
+    def test_regression_NN(self):
+        CM_optimizer = ClassicMomentumOptimizer(learning_rate=0.1)
+        x, y = create_Reg_Dataset()
+        model = Sequential()
+        model.add(Dense(1,input_shape=[1, ]))
+        model.compile(loss='mean_squared_error', optimizer=CM_optimizer)
+
+        cm_vhistory, cm_varhistory = train_CM(model, x, y, CM_optimizer, epochs=5)
+        rgd_vhistory,rgd_varhistory = reverse_training(model, x, y, CM_optimizer.v_preciserep, vars=CM_optimizer.var_preciserep, epochs=5)
+
+        return None
 
 
 if __name__ == '__main__':
