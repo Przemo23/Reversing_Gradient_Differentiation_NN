@@ -48,12 +48,12 @@ def train_CM(model, x_train, y_train, optimizer, epochs=10):
                                                                     epoch_loss_avg.result(),
                                                                     epoch_accuracy.result()))
 
-    return optimizer.v_history, optimizer.var_history
+    # return optimizer.v_history, optimizer.var_history
 
 
-def reverse_training(model, x_train, y_train, velocity, vars, epochs=10):
+def reverse_training(model, x_train, y_train, velocity, params, epochs=10):
     hes = HessianEstimators(loss_object, model, 32)
-    rgd_optimizer = RGDOptimizer(velocity, vars, hes)
+    rgd_optimizer = RGDOptimizer(velocity, params, hes)
     rgd_optimizer.prepare_for_reverse(model.trainable_variables)
 
     # Create arrays to monitor progress
@@ -78,8 +78,6 @@ def reverse_training(model, x_train, y_train, velocity, vars, epochs=10):
             # training=True is needed only if there are layers with different
             # behavior during training versus inference (e.g. Dropout).
             epoch_accuracy.update_state(y, model(x, training=True))
-            # if i%10 ==0:
-            #     print(f"Loss value:{loss_value}")
 
         # End epoch
         train_loss_results.append(epoch_loss_avg.result())
@@ -90,4 +88,4 @@ def reverse_training(model, x_train, y_train, velocity, vars, epochs=10):
                                                                     epoch_accuracy.result()))
 
     rgd_optimizer._reverse_last_step(var_list=model.trainable_variables)
-    return rgd_optimizer.v_history, rgd_optimizer.var_history
+    return rgd_optimizer.d_decay, rgd_optimizer.d_lr

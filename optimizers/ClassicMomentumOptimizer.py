@@ -22,22 +22,22 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
         self._lr = learning_rate
         self.var_preciserep = {}
         self.v_preciserep = {}
-        self.var_history = {}
-        self.v_history = {}
+        # self.var_history = {}
+        # self.v_history = {}
 
     def _prepare(self, var_list):
         if var_list[0].ref() not in self.var_preciserep.keys():
             for var in var_list:
                 self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
                 self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
-                self.var_history[var.ref()] = []
-                self.v_history[var.ref()] = []
+                # self.var_history[var.ref()] = []
+                # self.v_history[var.ref()] = []
 
     def _resource_apply_dense(self, grad, var):
         x = self.var_preciserep[var.ref()]
         v = self.v_preciserep[var.ref()]
-        self.v_history[var.ref()].append(v.val)
-        self.var_history[var.ref()].append(x.val)
+        # self.v_history[var.ref()].append(v.val)
+        # self.var_history[var.ref()].append(x.val)
 
         lr = self._lr
         decay = self._decay
