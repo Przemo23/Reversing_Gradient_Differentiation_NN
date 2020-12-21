@@ -18,18 +18,29 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
         :var self.v_preciserep: A dictionary containing the precise representations of velocities for each layer
         """
         super().__init__(name)
-        self._decay = decay
-        self._lr = learning_rate
+        self.decay_temp = decay
+        self.lr_temp = learning_rate
         self.var_preciserep = {}
         self.v_preciserep = {}
+        self.l_rate = {}
+        self.decay = {}
         # self.var_history = {}
         # self.v_history = {}
 
     def _prepare(self, var_list):
+
         if var_list[0].ref() not in self.var_preciserep.keys():
             for var in var_list:
                 self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
                 self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
+                if isinstance(self.lr_temp,dict):
+                    self.l_rate[var.ref()] = self.lr_temp[var.ref()]
+                elif isinstance(self.lr_temp,float):
+                    self.l_rate[var.ref()] = self.lr_temp
+                if isinstance(self.decay_temp, dict):
+                    self.decay[var.ref()] = self.decay_temp[var.ref()]
+                elif isinstance(self.decay_temp, float):
+                    self.decay[var.ref()] = self.decay_temp
                 # self.var_history[var.ref()] = []
                 # self.v_history[var.ref()] = []
 
@@ -39,8 +50,8 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
         # self.v_history[var.ref()].append(v.val)
         # self.var_history[var.ref()].append(x.val)
 
-        lr = self._lr
-        decay = self._decay
+        lr = self.l_rate[var.ref()]
+        decay = self.decay[var.ref()]
 
         # get current velocity
         # update position

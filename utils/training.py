@@ -1,5 +1,4 @@
 #### This file contains functions used in the process of teaching models
-#### and testing the optimizers
 
 import tensorflow as tf
 import numpy as np
@@ -51,9 +50,9 @@ def train_CM(model, x_train, y_train, optimizer, epochs=10):
     # return optimizer.v_history, optimizer.var_history
 
 
-def reverse_training(model, x_train, y_train, velocity, params, epochs=10):
+def reverse_training(model, x_train, y_train, velocity, params, learning_rate, decay, epochs=10):
     hes = HessianEstimators(loss_object, model, 32)
-    rgd_optimizer = RGDOptimizer(velocity, params, hes)
+    rgd_optimizer = RGDOptimizer(learning_rate=learning_rate,decay=decay,velocity=velocity ,weights= params,hes= hes)
     rgd_optimizer.prepare_for_reverse(model.trainable_variables)
 
     # Create arrays to monitor progress
@@ -87,5 +86,19 @@ def reverse_training(model, x_train, y_train, velocity, params, epochs=10):
                                                                     epoch_loss_avg.result(),
                                                                     epoch_accuracy.result()))
 
-    rgd_optimizer._reverse_last_step(var_list=model.trainable_variables)
+    rgd_optimizer.reverse_last_step(var_list=model.trainable_variables)
     return rgd_optimizer.d_decay, rgd_optimizer.d_lr
+
+
+def update_hyperparams(old_lr, update_lr, old_decay, update_decay):
+    new_lr = {}
+    new_decay = {}
+    if isinstance(old_lr, dict) and isinstance(old_decay, dict):
+        for key in old_lr.keys():
+            new_lr[key] = old_lr[key] - update_lr[key]
+            new_decay[key] = old_decay[key] - update_decay[key]
+    elif isinstance(old_lr, float) and isinstance(old_decay, float):
+        for key in update_lr.keys():
+            new_lr[key] = old_lr - update_lr[key]
+            new_decay[key] = old_decay - update_decay[key]
+    return new_lr, new_decay

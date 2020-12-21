@@ -24,7 +24,7 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         :var self.var_preciserep: A dictionary containing the precise representations of weights for each layer
         :var self.v_preciserep: A dictionary containing the precise representations of velocities for each layer
         """
-        self.learning_rate = learning_rate
+        self.l_rate = learning_rate
         self.decay = decay
         self.init_dict = {}
         self.var_preciserep = weights
@@ -68,8 +68,8 @@ class RGDOptimizer(keras.optimizers.Optimizer):
             self.create_init_dict(var_list)
 
     def _resource_apply_dense(self, grad, var):
-        lr = self.learning_rate
-        decay = self.decay
+        lr = self.l_rate[var.ref()]
+        decay = self.decay[var.ref()]
 
         # Used for initialization
         if self.init_dict[var.ref()]:
@@ -122,19 +122,19 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         # we are in.
         for var in var_list:
             self.var_preciserep[var.ref()].sub(
-                list_operation(self.v_preciserep[var.ref()].val, '*', [self.learning_rate]))
+                list_operation(self.v_preciserep[var.ref()].val, '*', [self.l_rate[var.ref()]]))
             state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
 
 
 
-    def _reverse_last_step(self, var_list):
+    def reverse_last_step(self, var_list):
         # As we called prepare_for_reverse() before starting the optimization and then we called
         # _resource_apply_dense() N times, the weights have been actualized one time to many.
         # This function reverts the last update, so the weights are updated only N times in the end.
 
         for var in var_list:
             self.var_preciserep[var.ref()].add(
-                list_operation(self.v_preciserep[var.ref()].val, '*', [self.learning_rate]))
+                list_operation(self.v_preciserep[var.ref()].val, '*', [self.l_rate[var.ref()]]))
             state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
 
     def _resource_apply_sparse(self, grad, var):
