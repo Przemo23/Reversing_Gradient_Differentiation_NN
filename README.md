@@ -1,8 +1,12 @@
 # Reversing_Gradient_Differentiation_NN
 This project revolves around reversing the process of learning in NN using Reverse Gradient Differentiation.
 
+### Disclaimer
+The pyhessian and preciseRep classes are adaptations of the solutions created in https://github.com/gknilsen/pyhessian 
+and https://github.com/HIPS/hypergrad respectively. 
 
-Sources:
+
+### Sources:
 1. Maclaurin, Duvenaud, Adams, Gradient-based Hyperparameter Optimization through Reversible Learning
 https://arxiv.org/abs/1502.03492
 2. Ian Goodfellow and Yoshua Bengio and Aaron Courville Deep Learning. MIT Press, 2016, http://www.deeplearningbook.org
