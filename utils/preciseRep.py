@@ -59,7 +59,7 @@ class PreciseRep(object):
         self.aux.push(list_operation(self.intrep, '%', d), d)  # Store remainder bits externally
         self.intrep = list_operation(self.intrep, '//', d)
         self.intrep = list_operation(self.intrep, '*', n)
-        self.intrep = list_operation(self.intrep,'+',self.aux.pop(n))
+        self.intrep = list_operation(self.intrep, '+', self.aux.pop(n))
 
     def mul(self, a):
         n, d = float_to_rational(a)
@@ -74,22 +74,6 @@ class PreciseRep(object):
     @property
     def val(self):
         return [float(x) / RADIX_SCALE for x in self.intrep]
-
-
-#
-# class LongIntArray(object):
-#     """Behaves like np.array([0L] * length, dtype=object) but faster."""
-#
-#     def __init__(self, shape):
-#         self.val = []
-#         self.nbits = 0
-#         self.grow()
-#         self.shape = shape
-#
-#     def grow(self):
-#         self.val.append(np.zeros(self.shape, dtype=np.int32))
-#         self.nbits += 32
-#
 
 class BitStore(object):
     """Efficiently stores information with non-integer number of bits (up to 16)."""

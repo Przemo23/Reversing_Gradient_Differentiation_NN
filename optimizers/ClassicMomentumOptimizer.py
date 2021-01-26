@@ -30,16 +30,19 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
     def _prepare(self, var_list):
 
         if var_list[0].ref() not in self.var_preciserep.keys():
-            for var in var_list:
-                self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
-                self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
-                if isinstance(self.lr_temp,dict):
+            if isinstance(self.lr_temp, dict):
+                for var in var_list:
                     self.l_rate[var.ref()] = self.lr_temp[var.ref()]
-                elif isinstance(self.lr_temp,float):
-                    self.l_rate[var.ref()] = self.lr_temp
-                if isinstance(self.decay_temp, dict):
                     self.decay[var.ref()] = self.decay_temp[var.ref()]
-                elif isinstance(self.decay_temp, float):
+                    self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+                    self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
+
+
+            elif isinstance(self.lr_temp, float):
+                for var in var_list:
+                    self.l_rate[var.ref()] = self.lr_temp
+                    self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+                    self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
                     self.decay[var.ref()] = self.decay_temp
                 # self.var_history[var.ref()] = []
                 # self.v_history[var.ref()] = []
@@ -59,11 +62,11 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
         # gradP.mul_scalar_matrix(grad.numpy())
 
         v.mul([decay])
-        v.sub((grad.numpy()*(1-decay)).ravel().tolist())
-        x.add(list_operation(v.val,'*',[lr]))
+        v.sub((grad.numpy() * (1 - decay)).ravel().tolist())
+        x.add(list_operation(v.val, '*', [lr]))
 
         self.var_preciserep[var.ref()] = x
-        state_ops.assign(var,np.array(x.val).reshape(var.shape))
+        state_ops.assign(var, np.array(x.val).reshape(var.shape))
         self.v_preciserep[var.ref()] = v
 
     #   return control_flow_ops.group(*[var_update, v_t])

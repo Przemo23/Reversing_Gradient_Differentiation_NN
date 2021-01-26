@@ -28,16 +28,16 @@ def create_Binary_Dataset():
 
 
 def create_Reg_Dataset():
-    x = (tf.random.uniform([1, 512], -1.0, 1.0, tf.float32, seed=1) + tf.random.normal([1, 512], 0.0, 0.01, tf.float32,
-                                                                                       seed=2)).numpy()
-    y = np.copy(x)
+    x = (tf.random.uniform([1, 1024], -1.0, 1.0, tf.float32, seed=1) )
+    y = np.copy(x) * 0.5 - tf.random.normal([1, 1024], 0.0, 0.05,tf.float32,seed=2).numpy()
+    x = np.reshape(x, (32, 32))
+    y = np.reshape(y, (32, 32))
 
     return x, y
 
 
 def create_Simple_Binary_Classifier():
     model = Sequential()
-
     model.add(Dense(2, activation='relu', input_dim=2))
     # model.add(Dense(1,activation='softmax',input_dim=2))
     return model

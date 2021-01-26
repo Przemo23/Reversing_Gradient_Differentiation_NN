@@ -73,7 +73,6 @@ class RGDOptimizer(keras.optimizers.Optimizer):
 
         # Used for initialization
         if self.init_dict[var.ref()]:
-
             self.init_dict[var.ref()] = False
             self.get_slot(var, "d_x").assign(grad)
             state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
@@ -93,8 +92,6 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         self.d_lr[var.ref()] = np.dot(dx_numpy, v_numpy)
 
         # Revert the CM optimizers steps
-
-        # # Test
         v.add((grad.numpy() * (1 - decay)).ravel().tolist())
         v.div([decay])
         x.sub(list_operation(v.val, '*', [lr]))
