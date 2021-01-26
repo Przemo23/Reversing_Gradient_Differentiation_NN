@@ -24,12 +24,12 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         :var self.var_preciserep: A dictionary containing the precise representations of weights for each layer
         :var self.v_preciserep: A dictionary containing the precise representations of velocities for each layer
         """
-        self.learning_rate = learning_rate
+        self.l_rate = learning_rate
         self.decay = decay
         self.init_dict = {}
         self.var_preciserep = weights
-        self.var_history = {}
-        self.v_history = {}
+        # self.var_history = {}
+        # self.v_history = {}
         self.v_preciserep = velocity
         self.hes = hes
         self.d_lr = {}
@@ -39,9 +39,8 @@ class RGDOptimizer(keras.optimizers.Optimizer):
     def assign_to_slots(self, var_list):
         # Initialize the slots and create the precise representations of weights
         for var in var_list:
-            # self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
-            self.var_history[var.ref()] = []
-            self.v_history[var.ref()] = []
+            # self.var_history[var.ref()] = []
+            # self.v_history[var.ref()] = []
             self.d_decay[var.ref()] = 0.0
             self.d_lr[var.ref()] = 0.0
             self.get_slot(var, "d_v").assign(np.zeros(var.shape))
@@ -69,12 +68,11 @@ class RGDOptimizer(keras.optimizers.Optimizer):
             self.create_init_dict(var_list)
 
     def _resource_apply_dense(self, grad, var):
-        lr = self.learning_rate
-        decay = self.decay
+        lr = self.l_rate[var.ref()]
+        decay = self.decay[var.ref()]
 
         # Used for initialization
         if self.init_dict[var.ref()]:
-
             self.init_dict[var.ref()] = False
             self.get_slot(var, "d_x").assign(grad)
             state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
@@ -82,7 +80,7 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         # Assign variables from slots and class variables
         x = self.var_preciserep[var.ref()]
         v = self.v_preciserep[var.ref()]
-        self.var_history[var.ref()].append(x.val)
+        # self.var_history[var.ref()].append(x.val)
 
         dv = self.get_slot(var, 'd_v')
         dx = self.get_slot(var, 'd_x')
@@ -94,8 +92,6 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         self.d_lr[var.ref()] = np.dot(dx_numpy, v_numpy)
 
         # Revert the CM optimizers steps
-
-        # # Test
         v.add((grad.numpy() * (1 - decay)).ravel().tolist())
         v.div([decay])
         x.sub(list_operation(v.val, '*', [lr]))
@@ -104,13 +100,13 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         state_ops.assign(var, np.array(x.val).reshape(var.shape))
         self.var_preciserep[var.ref()] = x
         self.v_preciserep[var.ref()] = v
-        self.v_history[var.ref()].append(v.val)
+        # self.v_history[var.ref()].append(v.val)
 
         # Calculate the gradient of the learning trajectory
         state_ops.assign_add(dv, lr * dx)
         dv_identity = tf.reshape(tf.identity(dv), [-1])
         dv_numpy = tf.transpose(dv_identity).numpy()
-        self.d_decay = np.dot(dv_numpy, (grad.numpy().ravel() + np.array(v.val)))
+        self.d_decay[var.ref()] = np.dot(dv_numpy, (grad.numpy().ravel() + np.array(v.val)))
         if self.hes is not None:
             new_dx = (1 - decay) * self.hes.estimators[var.ref()].get_Hv_op(tf.transpose(dv_identity))
             state_ops.assign_sub(dx, tf.reshape(new_dx, var.shape))
@@ -123,19 +119,19 @@ class RGDOptimizer(keras.optimizers.Optimizer):
         # we are in.
         for var in var_list:
             self.var_preciserep[var.ref()].sub(
-                list_operation(self.v_preciserep[var.ref()].val, '*', [self.learning_rate]))
+                list_operation(self.v_preciserep[var.ref()].val, '*', [self.l_rate[var.ref()]]))
             state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
 
 
 
-    def _reverse_last_step(self, var_list):
+    def reverse_last_step(self, var_list):
         # As we called prepare_for_reverse() before starting the optimization and then we called
         # _resource_apply_dense() N times, the weights have been actualized one time to many.
         # This function reverts the last update, so the weights are updated only N times in the end.
 
         for var in var_list:
             self.var_preciserep[var.ref()].add(
-                list_operation(self.v_preciserep[var.ref()].val, '*', [self.learning_rate]))
+                list_operation(self.v_preciserep[var.ref()].val, '*', [self.l_rate[var.ref()]]))
             state_ops.assign(var, np.array(self.var_preciserep[var.ref()].val).reshape(var.shape))
 
     def _resource_apply_sparse(self, grad, var):

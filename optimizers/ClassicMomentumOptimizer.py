@@ -18,29 +18,43 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
         :var self.v_preciserep: A dictionary containing the precise representations of velocities for each layer
         """
         super().__init__(name)
-        self._decay = decay
-        self._lr = learning_rate
+        self.decay_temp = decay
+        self.lr_temp = learning_rate
         self.var_preciserep = {}
         self.v_preciserep = {}
-        self.var_history = {}
-        self.v_history = {}
+        self.l_rate = {}
+        self.decay = {}
+        # self.var_history = {}
+        # self.v_history = {}
 
     def _prepare(self, var_list):
+
         if var_list[0].ref() not in self.var_preciserep.keys():
-            for var in var_list:
-                self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
-                self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
-                self.var_history[var.ref()] = []
-                self.v_history[var.ref()] = []
+            if isinstance(self.lr_temp, dict):
+                for var in var_list:
+                    self.l_rate[var.ref()] = self.lr_temp[var.ref()]
+                    self.decay[var.ref()] = self.decay_temp[var.ref()]
+                    self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+                    self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
+
+
+            elif isinstance(self.lr_temp, float):
+                for var in var_list:
+                    self.l_rate[var.ref()] = self.lr_temp
+                    self.var_preciserep[var.ref()] = PreciseRep(var.numpy().ravel().tolist())
+                    self.v_preciserep[var.ref()] = PreciseRep(np.zeros(var.shape).ravel().tolist())
+                    self.decay[var.ref()] = self.decay_temp
+                # self.var_history[var.ref()] = []
+                # self.v_history[var.ref()] = []
 
     def _resource_apply_dense(self, grad, var):
         x = self.var_preciserep[var.ref()]
         v = self.v_preciserep[var.ref()]
-        self.v_history[var.ref()].append(v.val)
-        self.var_history[var.ref()].append(x.val)
+        # self.v_history[var.ref()].append(v.val)
+        # self.var_history[var.ref()].append(x.val)
 
-        lr = self._lr
-        decay = self._decay
+        lr = self.l_rate[var.ref()]
+        decay = self.decay[var.ref()]
 
         # get current velocity
         # update position
@@ -48,11 +62,11 @@ class ClassicMomentumOptimizer(keras.optimizers.Optimizer):
         # gradP.mul_scalar_matrix(grad.numpy())
 
         v.mul([decay])
-        v.sub((grad.numpy()*(1-decay)).ravel().tolist())
-        x.add(list_operation(v.val,'*',[lr]))
+        v.sub((grad.numpy() * (1 - decay)).ravel().tolist())
+        x.add(list_operation(v.val, '*', [lr]))
 
         self.var_preciserep[var.ref()] = x
-        state_ops.assign(var,np.array(x.val).reshape(var.shape))
+        state_ops.assign(var, np.array(x.val).reshape(var.shape))
         self.v_preciserep[var.ref()] = v
 
     #   return control_flow_ops.group(*[var_update, v_t])
