@@ -9,12 +9,16 @@ class PreciseRepTest(tf.test.TestCase):
     def setUp(self):
         super(PreciseRepTest, self).setUp()
 
-    def test_init(self):
-        # Test if PreciseRep is correctly initialized
-        arr = [0.5, 0.5, 0.5, 0.2]
-        rep = PreciseRep(arr, False)
-        self.assertTrue(self.check_if_equal(arr, rep.val))
-        # TO FINISH
+    def run_tests(self):
+        self.test_init_2()
+        self.test_add()
+        self.test_add_reversible()
+        self.test_double_mul_div()
+        self.test_mul()
+        self.test_sub()
+        self.test_repeatable_mul_reversible()
+        self.test_scalar_mul_val()
+        self.test_mul_reversible()
 
     def test_init_2(self):
         rep = PreciseRep(np.random.rand(6).tolist())
