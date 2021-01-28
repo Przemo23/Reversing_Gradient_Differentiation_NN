@@ -28,8 +28,6 @@ def train_CM(model, x_train, y_train, optimizer, epochs=10):
 
     # Training loop
     optimizer, model, loss_values = training_loop(model, x_train, y_train, None, optimizer, epochs)
-
-    # return optimizer.v_history, optimizer.var_history
     return loss_values
 
 
@@ -47,7 +45,6 @@ def reverse_training(model, x_train, y_train, velocity, params, learning_rate, d
 
 def training_loop(model, x_train, y_train, hes, optimizer, epochs):
     train_loss_results = []
-    train_accuracy_results = []
     loss_values = []
     vars = []
     for epoch in range(epochs):
@@ -88,7 +85,7 @@ def training_loop(model, x_train, y_train, hes, optimizer, epochs):
     return optimizer, model, vars
 
 
-def training_with_hypergrad(test, d_lr, d_decay, lr, decay, x, y, epochs, loss_value1,model):
+def training_with_hypergrad(d_lr, d_decay, lr, decay, x, y, epochs, loss_value1,model):
     loss_values = []
     for i in range(epochs):
         lr, decay = update_hyperparams(lr, d_lr, decay, d_decay)
@@ -98,7 +95,6 @@ def training_with_hypergrad(test, d_lr, d_decay, lr, decay, x, y, epochs, loss_v
 
         train_CM(model, x, y, CM_optimizer, epochs=2)
         loss_value2 = loss(model, x.flatten(), y.flatten(), True)
-        # test.assertGreaterEqual(loss_value1, loss_value2)
         print("Epoch:", i)
         print("Prev loss:", loss_value1.numpy(), ", cur loss:", loss_value2.numpy())
         print("lr:", lr)
@@ -111,24 +107,19 @@ def training_with_hypergrad(test, d_lr, d_decay, lr, decay, x, y, epochs, loss_v
     plt.plot(range(epochs), loss_values )
     plt.show()
     return 0
-# def get_hypergrads(d_lr, d_decay):
-#     d_decay_list = []
-#     d_lr_list = []
-#     for key in d_lr.keys():
-#         d_decay.a
-#     return d_lr, d_decay
-
 
 def update_hyperparams(old_lr, update_lr, old_decay, update_decay):
+    # Change it if you want to optimize other hyperparam than update_lr
     new_lr = {}
     new_decay = {}
+    eta = 1000000000
     if isinstance(old_lr, dict) and isinstance(old_decay, dict):
         for key in old_lr.keys():
-            new_lr[key] = old_lr[key] - 1000000000*update_lr[key]
+            new_lr[key] = old_lr[key] - eta*update_lr[key]
             new_decay[key] = old_decay[key]
     elif isinstance(old_lr, float) and isinstance(old_decay, float):
         for key in update_lr.keys():
-            new_lr[key] = old_lr - 1000000000*update_lr[key]
+            new_lr[key] = old_lr - eta*update_lr[key]
             new_decay[key] = old_decay
     # Change to list
 
