@@ -35,6 +35,13 @@ def create_Reg_Dataset():
 
     return x, y
 
+def create_Reg_Dataset2():
+    x = (tf.random.uniform([1, 1024], -1.0, 1.0, tf.float32, seed=1) )
+    y = np.power(np.copy(x),2) - tf.random.normal([1, 1024], 0.0, 0.05,tf.float32,seed=2).numpy()
+    x = np.reshape(x, (32, 32))
+    y = np.reshape(y, (32, 32))
+
+    return x, y
 
 def create_Simple_Binary_Classifier():
     model = Sequential()

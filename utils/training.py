@@ -74,10 +74,8 @@ def training_loop(model, x_train, y_train, hes, optimizer, epochs):
             loss_values.append(loss_value)
             vars.append(model.get_weights())
 
-
         # End epoch
         train_loss_results.append(epoch_loss_avg.result())
-
 
         # print("Epoch {:03d}: Loss: {:.3f}, Accuracy: {:.3%}".format(epoch,
         #                                                             epoch_loss_avg.result(),
@@ -85,10 +83,10 @@ def training_loop(model, x_train, y_train, hes, optimizer, epochs):
     return optimizer, model, vars
 
 
-def training_with_hypergrad(d_lr, d_decay, lr, decay, x, y, epochs, loss_value1,model):
+def training_with_hypergrad(d_lr, d_decay, lr, decay, x, y, epochs, loss_value1, model, eta):
     loss_values = []
     for i in range(epochs):
-        lr, decay = update_hyperparams(lr, d_lr, decay, d_decay)
+        lr, decay = update_hyperparams(lr, d_lr, decay, d_decay, eta)
         CM_optimizer = ClassicMomentumOptimizer(learning_rate=lr, decay=decay)
         model.load_weights('model.h5')
         model.compile(loss='mean_squared_error', optimizer=CM_optimizer)
@@ -104,32 +102,35 @@ def training_with_hypergrad(d_lr, d_decay, lr, decay, x, y, epochs, loss_value1,
                                                    params=CM_optimizer.var_preciserep,
                                                    learning_rate=CM_optimizer.l_rate, decay=CM_optimizer.decay,
                                                    epochs=2)
-    plt.plot(range(epochs), loss_values )
+    plt.plot(range(epochs), loss_values)
     plt.show()
     return 0
 
-def update_hyperparams(old_lr, update_lr, old_decay, update_decay):
+
+def update_hyperparams(old_lr, update_lr, old_decay, update_decay, eta):
     # Change it if you want to optimize other hyperparam than update_lr
     new_lr = {}
     new_decay = {}
-    eta = 1000000000
     if isinstance(old_lr, dict) and isinstance(old_decay, dict):
         for key in old_lr.keys():
-            new_lr[key] = old_lr[key] - eta*update_lr[key]
+            new_lr[key] = old_lr[key] - eta * update_lr[key]
             new_decay[key] = old_decay[key]
     elif isinstance(old_lr, float) and isinstance(old_decay, float):
         for key in update_lr.keys():
-            new_lr[key] = old_lr - eta*update_lr[key]
+            new_lr[key] = old_lr - eta * update_lr[key]
             new_decay[key] = old_decay
-    # Change to list
-
-    # new_lr = old_lr - 10*update_lr
-    # new_decay = old_decay - 10*update_decay
     return new_lr, new_decay
 
 
 def create_Single_Neuron_NN(optimizer):
     model = Sequential()
+    model.add(Dense(1, input_shape=[1, ]))
+    model.compile(loss='mean_squared_error', optimizer=optimizer)
+    return model
+
+def create_Four_Neuron_NN(optimizer):
+    model = Sequential()
+    model.add(Dense(4, input_shape=[1, ]))
     model.add(Dense(1, input_shape=[1, ]))
     model.compile(loss='mean_squared_error', optimizer=optimizer)
     return model
